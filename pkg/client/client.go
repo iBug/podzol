@@ -87,7 +87,7 @@ func (c *Client) doRequest(method, path string, input, output any) error {
 	return json.NewDecoder(resp.Body).Decode(output)
 }
 
-func (c *Client) Create(opts docker.ContainerOptions) (data server.CreateResponse, err error) {
+func (c *Client) Create(opts docker.ContainerOptions) (data docker.ContainerInfo, err error) {
 	err = c.doRequest(http.MethodPost, "/create", opts, &data)
 	return
 }

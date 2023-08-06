@@ -40,10 +40,6 @@ func HandleDefault(w http.ResponseWriter, r *http.Request) {
 	_ = json.NewEncoder(w).Encode(ErrorResponse{Error: "not found"})
 }
 
-type CreateResponse struct {
-	ID string `json:"id"`
-}
-
 // Create a container.
 func (s *Server) HandleCreate(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
@@ -59,7 +55,7 @@ func (s *Server) HandleCreate(w http.ResponseWriter, r *http.Request) {
 	}
 
 	ctx := r.Context()
-	id, err := s.docker.Create(ctx, opts)
+	info, err := s.docker.Create(ctx, opts)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		s := fmt.Sprintf("failed to create container: %v", err)
@@ -68,7 +64,7 @@ func (s *Server) HandleCreate(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusOK)
-	_ = json.NewEncoder(w).Encode(CreateResponse{ID: id})
+	_ = json.NewEncoder(w).Encode(info)
 }
 
 // Remove a container.
@@ -133,7 +129,6 @@ func (s *Server) HandleList(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-	defer r.Body.Close()
 	s.mux.ServeHTTP(w, r)
 }
 

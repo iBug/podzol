@@ -13,6 +13,8 @@ var listCmd = &cobra.Command{
 	Short: "List containers",
 	Long:  "List containers",
 	RunE:  listRunE,
+
+	SilenceUsage: true,
 }
 
 func listRunE(cmd *cobra.Command, args []string) error {

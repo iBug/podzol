@@ -30,14 +30,21 @@ type containerOptionsA ContainerOptions
 
 // Auxiliary struct for JSON.
 type containerOptionsS struct {
-	containerOptionsA
+	*containerOptionsA
 
 	Lifetime any `json:"lifetime"`
 }
 
+// MarshalJSON implements json.Marshaler.
+func (c ContainerOptions) MarshalJSON() ([]byte, error) {
+	aux := &containerOptionsS{containerOptionsA: (*containerOptionsA)(&c)}
+	aux.Lifetime = int64(c.Lifetime / time.Second)
+	return json.Marshal(aux)
+}
+
 // UnmarshalJSON implements json.Unmarshaler.
 func (c *ContainerOptions) UnmarshalJSON(b []byte) (err error) {
-	aux := &containerOptionsS{containerOptionsA: containerOptionsA(*c)}
+	aux := &containerOptionsS{containerOptionsA: (*containerOptionsA)(c)}
 	if err = json.Unmarshal(b, aux); err != nil {
 		return
 	}
@@ -64,14 +71,14 @@ type containerLabelA ContainerLabel
 
 // Auxiliary struct for JSON.
 type containerLabelS struct {
-	containerLabelA
+	*containerLabelA
 
 	Lifetime string `json:"lifetime"`
 }
 
 // UnmarshalJSON implements json.Unmarshaler.
 func (c *ContainerLabel) UnmarshalJSON(b []byte) (err error) {
-	aux := &containerLabelS{containerLabelA: containerLabelA(*c)}
+	aux := &containerLabelS{containerLabelA: (*containerLabelA)(c)}
 	if err = json.Unmarshal(b, aux); err != nil {
 		return
 	}
@@ -92,16 +99,26 @@ type containerInfoA ContainerInfo
 
 // Auxiliary struct for JSON.
 type containerInfoS struct {
-	containerInfoA
+	*containerInfoA
 
 	Deadline int64 `json:"deadline"`
 }
 
 // MarshalJSON implements json.Marshaler. Note that Deadline is exported as a Unix timestamp.
 func (c ContainerInfo) MarshalJSON() ([]byte, error) {
-	aux := &containerInfoS{containerInfoA: containerInfoA(c)}
+	aux := &containerInfoS{containerInfoA: (*containerInfoA)(&c)}
 	aux.Deadline = c.Deadline.Unix()
 	return json.Marshal(aux)
+}
+
+// UnmarshalJSON implements json.Unmarshaler. Note that Deadline is expected as a Unix timestamp.
+func (c *ContainerInfo) UnmarshalJSON(data []byte) error {
+	aux := &containerInfoS{containerInfoA: (*containerInfoA)(c)}
+	if err := json.Unmarshal(data, aux); err != nil {
+		return err
+	}
+	c.Deadline = time.Unix(aux.Deadline, 0)
+	return nil
 }
 
 // Construct container name from options.
@@ -120,14 +137,15 @@ func (opts *ContainerOptions) Label() (string, error) {
 }
 
 // Create a container from the given options.
-func (c *Client) Create(ctx context.Context, opts ContainerOptions) (string, error) {
+func (c *Client) Create(ctx context.Context, opts ContainerOptions) (ContainerInfo, error) {
 	label, err := opts.Label()
 	if err != nil {
-		return "", err
+		return ContainerInfo{}, err
 	}
 
+	containerName := c.ContainerName(opts)
 	containerConfig := &container.Config{
-		Hostname: c.ContainerName(opts),
+		Hostname: containerName,
 		ExposedPorts: nat.PortSet{
 			nat.Port(fmt.Sprintf("%d/tcp", opts.Port)): {},
 		},
@@ -140,17 +158,23 @@ func (c *Client) Create(ctx context.Context, opts ContainerOptions) (string, err
 		AutoRemove:  true,
 	}
 
-	resp, err := c.c.ContainerCreate(ctx, containerConfig, hostConfig, nil, nil, c.ContainerName(opts))
+	createTime := time.Now().Truncate(time.Second)
+	resp, err := c.c.ContainerCreate(ctx, containerConfig, hostConfig, nil, nil, containerName)
 	if err != nil {
-		return "", err
+		return ContainerInfo{}, err
 	}
 	if err := c.c.ContainerStart(ctx, resp.ID, types.ContainerStartOptions{}); err != nil {
 		// Remove container if start failed
 		_ = c.Remove(ctx, opts)
-		return "", err
+		return ContainerInfo{}, err
 	}
 
-	return resp.ID, err
+	return ContainerInfo{
+		Name:     containerName,
+		ID:       resp.ID,
+		Port:     opts.Port,
+		Deadline: createTime.Add(opts.Lifetime),
+	}, err
 }
 
 // Remove a container.
