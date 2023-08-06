@@ -1,9 +1,13 @@
 package main
 
-import "github.com/ustclug/podzol/cmd"
+import (
+	"os"
+
+	"github.com/ustclug/podzol/cmd"
+)
 
 func main() {
-	if err := cmd.Execute(); err != nil {
-		panic(err)
+	if cmd.Execute() != nil {
+		os.Exit(1)
 	}
 }

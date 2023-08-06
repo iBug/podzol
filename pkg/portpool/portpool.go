@@ -33,7 +33,7 @@ func (p *Pool) Max() uint16 {
 }
 
 // Get returns a port number in the range [Min, Max].
-// If no port is available, -1 is returned.
+// If no port is available, 0 is returned.
 func (p *Pool) Get() uint16 {
 	p.mu.Lock()
 	defer p.mu.Unlock()
@@ -53,7 +53,7 @@ func (p *Pool) Get() uint16 {
 		}
 	}
 
-	return -1
+	return 0
 }
 
 func (p *Pool) Put(port uint16) {

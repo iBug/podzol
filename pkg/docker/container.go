@@ -15,8 +15,6 @@ import (
 	"golang.org/x/exp/slices"
 )
 
-const Namespace = "podzol"
-
 // ContainerOptions is the options for Create, Remove and List.
 type ContainerOptions struct {
 	User     int           `json:"user"`
@@ -107,8 +105,8 @@ func (c ContainerInfo) MarshalJSON() ([]byte, error) {
 }
 
 // Construct container name from options.
-func (opts *ContainerOptions) ContainerName() string {
-	return fmt.Sprintf("%s_%d_%s_1", Namespace, opts.User, opts.AppName)
+func (c *Client) ContainerName(opts ContainerOptions) string {
+	return fmt.Sprintf("%s_%d_%s_1", c.prefix, opts.User, opts.AppName)
 }
 
 // Construct JSON data from options.
@@ -129,7 +127,7 @@ func (c *Client) Create(ctx context.Context, opts ContainerOptions) (string, err
 	}
 
 	containerConfig := &container.Config{
-		Hostname: opts.ContainerName(),
+		Hostname: c.ContainerName(opts),
 		ExposedPorts: nat.PortSet{
 			nat.Port(fmt.Sprintf("%d/tcp", opts.Port)): {},
 		},
@@ -142,7 +140,7 @@ func (c *Client) Create(ctx context.Context, opts ContainerOptions) (string, err
 		AutoRemove:  true,
 	}
 
-	resp, err := c.c.ContainerCreate(ctx, containerConfig, hostConfig, nil, nil, opts.ContainerName())
+	resp, err := c.c.ContainerCreate(ctx, containerConfig, hostConfig, nil, nil, c.ContainerName(opts))
 	if err != nil {
 		return "", err
 	}
@@ -157,7 +155,7 @@ func (c *Client) Create(ctx context.Context, opts ContainerOptions) (string, err
 
 // Remove a container.
 func (c *Client) Remove(ctx context.Context, opts ContainerOptions) error {
-	return c.c.ContainerRemove(ctx, opts.ContainerName(), types.ContainerRemoveOptions{
+	return c.c.ContainerRemove(ctx, c.ContainerName(opts), types.ContainerRemoveOptions{
 		RemoveVolumes: true,
 		RemoveLinks:   true,
 		Force:         true,

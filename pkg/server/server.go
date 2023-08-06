@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/spf13/viper"
 	"github.com/ustclug/podzol/pkg/docker"
 )
 
@@ -17,8 +18,8 @@ type ErrorResponse struct {
 	Error string `json:"error"`
 }
 
-func NewServer(c Config) (*Server, error) {
-	dockerClient, err := docker.NewClient(c.PortMin, c.PortMax)
+func NewServer(v *viper.Viper) (*Server, error) {
+	dockerClient, err := docker.NewClient(v)
 	if err != nil {
 		return nil, err
 	}
@@ -93,10 +94,12 @@ func (s *Server) HandleList(w http.ResponseWriter, r *http.Request) {
 
 	optsJSON := r.URL.Query().Get("opts")
 	var opts docker.ContainerOptions
-	if err := json.Unmarshal([]byte(optsJSON), &opts); err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		_ = json.NewEncoder(w).Encode(ErrorResponse{Error: err.Error()})
-		return
+	if optsJSON != "" {
+		if err := json.Unmarshal([]byte(optsJSON), &opts); err != nil {
+			w.WriteHeader(http.StatusBadRequest)
+			_ = json.NewEncoder(w).Encode(ErrorResponse{Error: err.Error()})
+			return
+		}
 	}
 
 	ctx := r.Context()
