@@ -44,6 +44,7 @@ type CreateResponse struct {
 	ID string `json:"id"`
 }
 
+// Create a container.
 func (s *Server) HandleCreate(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		w.WriteHeader(http.StatusMethodNotAllowed)
@@ -70,6 +71,7 @@ func (s *Server) HandleCreate(w http.ResponseWriter, r *http.Request) {
 	_ = json.NewEncoder(w).Encode(CreateResponse{ID: id})
 }
 
+// Remove a container.
 func (s *Server) HandleRemove(w http.ResponseWriter, r *http.Request) {
 	var opts docker.ContainerOptions
 	if err := json.NewDecoder(r.Body).Decode(&opts); err != nil {
@@ -90,20 +92,30 @@ func (s *Server) HandleRemove(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte("{}"))
 }
 
+// List containers.
+// Filters of type docker.ContainerOptions may be passed as either the "opts" query parameter or as request body. In either case, the filters are JSON-encoded.
 func (s *Server) HandleList(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodGet {
-		w.WriteHeader(http.StatusMethodNotAllowed)
-		return
-	}
-
-	optsJSON := r.URL.Query().Get("opts")
 	var opts docker.ContainerOptions
-	if optsJSON != "" {
-		if err := json.Unmarshal([]byte(optsJSON), &opts); err != nil {
+	switch r.Method {
+	case http.MethodGet:
+		optsJSON := r.URL.Query().Get("opts")
+		if optsJSON != "" {
+			if err := json.Unmarshal([]byte(optsJSON), &opts); err != nil {
+				w.WriteHeader(http.StatusBadRequest)
+				_ = json.NewEncoder(w).Encode(ErrorResponse{Error: err.Error()})
+				return
+			}
+		}
+	case http.MethodPost:
+		defer r.Body.Close()
+		if err := json.NewDecoder(r.Body).Decode(&opts); err != nil {
 			w.WriteHeader(http.StatusBadRequest)
 			_ = json.NewEncoder(w).Encode(ErrorResponse{Error: err.Error()})
 			return
 		}
+	default:
+		w.WriteHeader(http.StatusMethodNotAllowed)
+		return
 	}
 
 	ctx := r.Context()
