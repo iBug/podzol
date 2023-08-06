@@ -4,37 +4,37 @@ import "sync"
 
 // Pool is a thread-safe pool of port numbers.
 type Pool struct {
-	lower, upper int
+	lower, upper uint16
 
-	last int
-	used map[int]bool
+	last uint16
+	used map[uint16]bool
 	mu   sync.Mutex
 }
 
 // NewPool returns a new port pool.
-func NewPool(min, max int) *Pool {
+func NewPool(min, max uint16) *Pool {
 	return &Pool{
 		lower: min,
 		upper: max,
 
 		last: min - 1,
-		used: make(map[int]bool),
+		used: make(map[uint16]bool),
 	}
 }
 
 // Min returns the minimum port number.
-func (p *Pool) Min() int {
+func (p *Pool) Min() uint16 {
 	return p.lower
 }
 
 // Max returns the maximum port number.
-func (p *Pool) Max() int {
+func (p *Pool) Max() uint16 {
 	return p.upper
 }
 
 // Get returns a port number in the range [Min, Max].
 // If no port is available, -1 is returned.
-func (p *Pool) Get() int {
+func (p *Pool) Get() uint16 {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 
@@ -56,7 +56,7 @@ func (p *Pool) Get() int {
 	return -1
 }
 
-func (p *Pool) Put(port int) {
+func (p *Pool) Put(port uint16) {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 
