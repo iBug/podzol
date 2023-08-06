@@ -10,8 +10,10 @@ import (
 )
 
 type Server struct {
-	dockerClient *docker.Client
-	mux          *http.ServeMux
+	docker *docker.Client
+	mux    *http.ServeMux
+
+	listenAddr string
 }
 
 type ErrorResponse struct {
@@ -25,8 +27,10 @@ func NewServer(v *viper.Viper) (*Server, error) {
 	}
 
 	return &Server{
-		dockerClient: dockerClient,
-		mux:          http.NewServeMux(),
+		docker: dockerClient,
+		mux:    http.NewServeMux(),
+
+		listenAddr: v.GetString("listen-addr"),
 	}, nil
 }
 
@@ -54,7 +58,7 @@ func (s *Server) HandleCreate(w http.ResponseWriter, r *http.Request) {
 	}
 
 	ctx := r.Context()
-	id, err := s.dockerClient.Create(ctx, opts)
+	id, err := s.docker.Create(ctx, opts)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		s := fmt.Sprintf("failed to create container: %v", err)
@@ -75,7 +79,7 @@ func (s *Server) HandleRemove(w http.ResponseWriter, r *http.Request) {
 	}
 
 	ctx := r.Context()
-	if err := s.dockerClient.Remove(ctx, opts); err != nil {
+	if err := s.docker.Remove(ctx, opts); err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		s := fmt.Sprintf("failed to remove container: %v", err)
 		_ = json.NewEncoder(w).Encode(ErrorResponse{Error: s})
@@ -103,7 +107,7 @@ func (s *Server) HandleList(w http.ResponseWriter, r *http.Request) {
 	}
 
 	ctx := r.Context()
-	containers, err := s.dockerClient.List(ctx, opts)
+	containers, err := s.docker.List(ctx, opts)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		s := fmt.Sprintf("failed to list containers: %v", err)
@@ -124,5 +128,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 func (s *Server) Run() error {
 	s.mux.HandleFunc("/", HandleDefault)
 	s.mux.HandleFunc("/create", s.HandleCreate)
-	return http.ListenAndServe(":8080", s)
+	s.mux.HandleFunc("/remove", s.HandleRemove)
+	s.mux.HandleFunc("/list", s.HandleList)
+	return http.ListenAndServe(s.listenAddr, s)
 }

@@ -1,0 +1,13 @@
+[Unit]
+Description=Podzol Service
+After=network.target
+
+[Service]
+Type=simple
+User=nobody
+Group=nogroup
+SupplementaryGroups=docker
+ExecStart=/usr/local/bin/podzol server
+
+[Install]
+WantedBy=multi-user.target

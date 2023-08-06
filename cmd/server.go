@@ -1,6 +1,8 @@
 package cmd
 
 import (
+	"fmt"
+
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"github.com/ustclug/podzol/pkg/config"
@@ -8,7 +10,7 @@ import (
 )
 
 var serverCmd = &cobra.Command{
-	Use:   "server",
+	Use:   "server [-l listen]",
 	Short: "Run server process",
 	Long:  "Run as the server process",
 	RunE:  serverRunE,
@@ -17,6 +19,9 @@ var serverCmd = &cobra.Command{
 func serverRunE(cmd *cobra.Command, args []string) error {
 	if err := config.Load(); err != nil {
 		cmd.SilenceUsage = true
+		if _, ok := err.(viper.ConfigFileNotFoundError); ok {
+			fmt.Fprintf(cmd.ErrOrStderr(), "Use `%s defaultconfig` to generate a default config.\n", cmd.Root().Name())
+		}
 		return err
 	}
 
@@ -29,4 +34,8 @@ func serverRunE(cmd *cobra.Command, args []string) error {
 
 func init() {
 	rootCmd.AddCommand(serverCmd)
+
+	flags := serverCmd.Flags()
+	flags.StringP("listen", "l", "", "override listen address")
+	viper.BindPFlag("listen-addr", flags.Lookup("listen"))
 }

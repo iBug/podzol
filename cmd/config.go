@@ -5,15 +5,19 @@ import (
 	"github.com/ustclug/podzol/pkg/config"
 )
 
+var writeConfigPath string
+
 var defaultconfigCmd = &cobra.Command{
-	Use:   "defaultconfig",
+	Use:   "defaultconfig [-o output]",
 	Short: "Generate a default configuration file",
 	Long:  `Generate a default configuration file`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		return config.Save(config.ExampleFile)
+		return config.Save(writeConfigPath)
 	},
 }
 
 func init() {
 	rootCmd.AddCommand(defaultconfigCmd)
+
+	defaultconfigCmd.Flags().StringVarP(&writeConfigPath, "output", "o", config.ExampleFile, "output file")
 }

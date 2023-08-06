@@ -14,15 +14,7 @@ const (
 )
 
 func Load() error {
-	err := viper.ReadInConfig()
-	if _, ok := err.(viper.ConfigFileNotFoundError); ok {
-		err = fmt.Errorf("config file not found, writing default to %s", ExampleFile)
-		if err := Save(ExampleFile); err != nil {
-			return err
-		}
-		return err
-	}
-	return err
+	return viper.ReadInConfig()
 }
 
 func Save(in string) error {
