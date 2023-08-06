@@ -9,10 +9,11 @@ import (
 )
 
 var listCmd = &cobra.Command{
-	Use:   "list",
-	Short: "List containers",
-	Long:  "List containers",
-	RunE:  listRunE,
+	Use:     "list",
+	Aliases: []string{"ls"},
+	Short:   "List containers",
+	Long:    "List containers",
+	RunE:    listRunE,
 
 	SilenceUsage: true,
 }

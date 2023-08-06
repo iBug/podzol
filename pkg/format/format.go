@@ -46,7 +46,7 @@ func ListContainers(w io.Writer, data []docker.ContainerInfo) error {
 	for _, c := range data {
 		table.Append([]string{
 			c.Name,
-			c.ID,
+			c.ID[:12],
 			strconv.Itoa(int(c.Port)),
 			c.Deadline.String(),
 		})

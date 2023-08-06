@@ -2,7 +2,7 @@ package pkg
 
 const (
 	Name = "Podzol"
-	ID   = "com.ustclug.podzol"
+	ID   = "org.ustclug.podzol"
 )
 
 var Version string = "development"

@@ -4,6 +4,8 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"os"
+	"strconv"
 	"strings"
 	"time"
 
@@ -76,6 +78,13 @@ type containerLabelS struct {
 	Lifetime string `json:"lifetime"`
 }
 
+// MarshalJSON implements json.Marshaler.
+func (c ContainerLabel) MarshalJSON() ([]byte, error) {
+	aux := &containerLabelS{containerLabelA: (*containerLabelA)(&c)}
+	aux.Lifetime = c.Lifetime.String()
+	return json.Marshal(aux)
+}
+
 // UnmarshalJSON implements json.Unmarshaler.
 func (c *ContainerLabel) UnmarshalJSON(b []byte) (err error) {
 	aux := &containerLabelS{containerLabelA: (*containerLabelA)(c)}
@@ -144,18 +153,27 @@ func (c *Client) Create(ctx context.Context, opts ContainerOptions) (ContainerIn
 	}
 
 	containerName := c.ContainerName(opts)
+	portToMap := nat.Port(fmt.Sprintf("%d/tcp", opts.Port))
+	mappedPort := c.pool.Get()
+
 	containerConfig := &container.Config{
 		Hostname: containerName,
 		ExposedPorts: nat.PortSet{
-			nat.Port(fmt.Sprintf("%d/tcp", opts.Port)): {},
+			portToMap: {},
 		},
 		Image:  opts.Image,
 		Labels: map[string]string{pkg.ID: label},
 	}
 
+	portBindings := nat.PortMap{portToMap: []nat.PortBinding{{
+		HostIP:   "0.0.0.0",
+		HostPort: strconv.Itoa(int(mappedPort)),
+	}}}
+
 	hostConfig := &container.HostConfig{
-		NetworkMode: "bridge",
-		AutoRemove:  true,
+		NetworkMode:  "bridge",
+		PortBindings: portBindings,
+		AutoRemove:   true,
 	}
 
 	createTime := time.Now().Truncate(time.Second)
@@ -172,7 +190,7 @@ func (c *Client) Create(ctx context.Context, opts ContainerOptions) (ContainerIn
 	return ContainerInfo{
 		Name:     containerName,
 		ID:       resp.ID,
-		Port:     opts.Port,
+		Port:     mappedPort,
 		Deadline: createTime.Add(opts.Lifetime),
 	}, err
 }
@@ -197,13 +215,14 @@ func (c *Client) List(ctx context.Context, opts ContainerOptions) ([]ContainerIn
 		return nil, err
 	}
 
-	var infos []ContainerInfo
+	infos := make([]ContainerInfo, 0)
 
 	for _, container := range containers {
 		labelStr := container.Labels[pkg.ID]
 		var label ContainerLabel
 		if err := json.Unmarshal([]byte(labelStr), &label); err != nil {
 			// Log error
+			fmt.Fprintln(os.Stderr, err)
 			continue
 		}
 
@@ -221,7 +240,7 @@ func (c *Client) List(ctx context.Context, opts ContainerOptions) ([]ContainerIn
 		infos = append(infos, ContainerInfo{
 			Name:     strings.TrimPrefix(container.Names[0], "/"),
 			ID:       container.ID,
-			Port:     opts.Port,
+			Port:     container.Ports[0].PublicPort,
 			Deadline: time.Unix(container.Created, 0).Add(label.Lifetime),
 		})
 	}

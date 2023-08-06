@@ -12,10 +12,11 @@ import (
 )
 
 var removeCmd = &cobra.Command{
-	Use:   "remove { USER | TOKEN } APPLICATION",
-	Short: "Remove a container",
-	Long:  `Remove a container`,
-	RunE:  removeRunE,
+	Use:     "remove { USER | TOKEN } APPLICATION",
+	Aliases: []string{"rm"},
+	Short:   "Remove a container",
+	Long:    `Remove a container`,
+	RunE:    removeRunE,
 }
 
 func removeRunE(cmd *cobra.Command, args []string) error {
