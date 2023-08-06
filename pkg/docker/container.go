@@ -19,19 +19,19 @@ const Namespace = "podzol"
 
 // ContainerOptions is the options for Create, Remove and List.
 type ContainerOptions struct {
-	User          int
-	Token         string
-	ChallengeName string
-	Image         string
-	Port          uint16
-	Lifetime      time.Duration
+	User     int
+	Token    string
+	AppName  string
+	Image    string
+	Port     uint16
+	Lifetime time.Duration
 }
 
 // ContainerLabel is the label data for containers.
 type ContainerLabel struct {
-	User      int           `json:"user"`
-	Challenge string        `json:"challenge"`
-	Lifetime  time.Duration `json:"lifetime"`
+	User     int           `json:"user"`
+	App      string        `json:"challenge"`
+	Lifetime time.Duration `json:"lifetime"`
 }
 
 // Auxiliary struct for JSON.
@@ -81,15 +81,15 @@ func (c ContainerInfo) MarshalJSON() ([]byte, error) {
 
 // Construct container name from options.
 func (opts *ContainerOptions) ContainerName() string {
-	return fmt.Sprintf("%s_%d_%s_1", Namespace, opts.User, opts.ChallengeName)
+	return fmt.Sprintf("%s_%d_%s_1", Namespace, opts.User, opts.AppName)
 }
 
 // Construct JSON data from options.
 func (opts *ContainerOptions) Label() (string, error) {
 	b, err := json.Marshal(ContainerLabel{
-		User:      opts.User,
-		Challenge: opts.ChallengeName,
-		Lifetime:  opts.Lifetime,
+		User:     opts.User,
+		App:      opts.AppName,
+		Lifetime: opts.Lifetime,
 	})
 	return string(b), err
 }
@@ -139,7 +139,7 @@ func (c *Client) Remove(ctx context.Context, opts ContainerOptions) error {
 
 // List containers.
 // Options are used to filter containers.
-// Only UserID, ChallengeName and Port are used.
+// Only UserID, AppName and Port are used.
 func (c *Client) List(ctx context.Context, opts ContainerOptions) ([]ContainerInfo, error) {
 	containers, err := c.c.ContainerList(ctx, types.ContainerListOptions{
 		All:     true,
@@ -162,7 +162,7 @@ func (c *Client) List(ctx context.Context, opts ContainerOptions) ([]ContainerIn
 		if opts.User != 0 && label.User != opts.User {
 			continue
 		}
-		if opts.ChallengeName != "" && label.Challenge != opts.ChallengeName {
+		if opts.AppName != "" && label.App != opts.AppName {
 			continue
 		}
 		if opts.Port != 0 && !slices.ContainsFunc(container.Ports,
