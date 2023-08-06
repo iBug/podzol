@@ -19,12 +19,39 @@ const Namespace = "podzol"
 
 // ContainerOptions is the options for Create, Remove and List.
 type ContainerOptions struct {
-	User     int
-	Token    string
-	AppName  string
-	Image    string
-	Port     uint16
-	Lifetime time.Duration
+	User     int           `json:"user"`
+	Token    string        `json:"token"`
+	AppName  string        `json:"app"`
+	Image    string        `json:"image"`
+	Port     uint16        `json:"port"`
+	Lifetime time.Duration `json:"lifetime"`
+}
+
+// Auxiliary struct for JSON.
+type containerOptionsA ContainerOptions
+
+// Auxiliary struct for JSON.
+type containerOptionsS struct {
+	containerOptionsA
+
+	Lifetime any `json:"lifetime"`
+}
+
+// UnmarshalJSON implements json.Unmarshaler.
+func (c *ContainerOptions) UnmarshalJSON(b []byte) (err error) {
+	aux := &containerOptionsS{containerOptionsA: containerOptionsA(*c)}
+	if err = json.Unmarshal(b, aux); err != nil {
+		return
+	}
+	switch lifetime := aux.Lifetime.(type) {
+	case string:
+		c.Lifetime, err = time.ParseDuration(lifetime)
+	case float64:
+		c.Lifetime = time.Duration(lifetime * float64(time.Second))
+	default:
+		err = fmt.Errorf("invalid lifetime type: %T", lifetime)
+	}
+	return
 }
 
 // ContainerLabel is the label data for containers.

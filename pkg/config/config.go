@@ -8,6 +8,8 @@ import (
 
 type Config struct {
 	ContainerPrefix string
+	PortMin         uint16
+	PortMax         uint16
 }
 
 var Default Config
