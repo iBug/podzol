@@ -181,7 +181,6 @@ func (c *Client) Create(ctx context.Context, opts ContainerOptions) (ContainerIn
 func (c *Client) Remove(ctx context.Context, opts ContainerOptions) error {
 	return c.c.ContainerRemove(ctx, c.ContainerName(opts), types.ContainerRemoveOptions{
 		RemoveVolumes: true,
-		RemoveLinks:   true,
 		Force:         true,
 	})
 }
