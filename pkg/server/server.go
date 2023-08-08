@@ -2,6 +2,7 @@ package server
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 
@@ -125,6 +126,29 @@ func (s *Server) HandleList(w http.ResponseWriter, r *http.Request) {
 
 	w.WriteHeader(http.StatusOK)
 	_ = json.NewEncoder(w).Encode(containers)
+}
+
+type PurgeResponse struct {
+	Containers []docker.ContainerInfo `json:"containers"`
+	Errors     error                  `json:"errors"`
+}
+
+// Purge containers.
+func (s *Server) HandlePurge(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		w.WriteHeader(http.StatusMethodNotAllowed)
+		return
+	}
+
+	ctx := r.Context()
+	containers, err := s.docker.Purge(ctx)
+	resp := PurgeResponse{
+		Containers: containers,
+		Errors:     errors.Unwrap(err),
+	}
+
+	w.WriteHeader(http.StatusOK)
+	_ = json.NewEncoder(w).Encode(resp)
 }
 
 func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {

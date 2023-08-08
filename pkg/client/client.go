@@ -101,3 +101,8 @@ func (c *Client) List(opts docker.ContainerOptions) (data []docker.ContainerInfo
 	err = c.doRequest(http.MethodPost, "/list", opts, &data)
 	return
 }
+
+func (c *Client) Purge() (data []docker.ContainerInfo, err error) {
+	err = c.doRequest(http.MethodPost, "/purge", nil, &data)
+	return
+}

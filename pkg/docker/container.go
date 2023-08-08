@@ -3,6 +3,7 @@ package docker
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"strconv"
@@ -245,4 +246,65 @@ func (c *Client) List(ctx context.Context, opts ContainerOptions) ([]ContainerIn
 		})
 	}
 	return infos, nil
+}
+
+type ContainerActionError struct {
+	Action    string        `json:"action"`
+	Container ContainerInfo `json:"container"`
+	Err       error         `json:"error"`
+}
+
+func (e ContainerActionError) Error() string {
+	return fmt.Sprintf("%s %s: %v", e.Action, e.Container.Name, e.Err)
+}
+
+// Purge expired containers.
+// Returns the list of (attempted) purged containers.
+// Note that if the metadata of a container is corrupted, it will be removed as well.
+// The returned error is a list of errors that occurred during the purge.
+func (c *Client) Purge(ctx context.Context) ([]ContainerInfo, error) {
+	containers, err := c.c.ContainerList(ctx, types.ContainerListOptions{
+		All:     true,
+		Filters: filters.NewArgs(filters.Arg("label", pkg.ID)),
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	infos := make([]ContainerInfo, 0)
+
+	for _, container := range containers {
+		labelStr := container.Labels[pkg.ID]
+		var label ContainerLabel
+		if err := json.Unmarshal([]byte(labelStr), &label); err != nil {
+			// TODO: Log error
+			label.Lifetime = 0
+		}
+
+		info := ContainerInfo{
+			Name:     strings.TrimPrefix(container.Names[0], "/"),
+			ID:       container.ID,
+			Port:     container.Ports[0].PublicPort,
+			Deadline: time.Unix(container.Created, 0).Add(label.Lifetime),
+		}
+		if time.Now().After(info.Deadline) {
+			infos = append(infos, info)
+		}
+	}
+
+	errs := make([]error, 0)
+	for _, container := range infos {
+		err := c.c.ContainerRemove(ctx, container.Name, types.ContainerRemoveOptions{
+			RemoveVolumes: true,
+			Force:         true,
+		})
+		if err != nil {
+			errs = append(errs, ContainerActionError{
+				Action:    "remove",
+				Container: container,
+				Err:       err,
+			})
+		}
+	}
+	return infos, errors.Join(errs...)
 }
