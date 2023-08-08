@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"os"
 
 	"github.com/spf13/viper"
 	"github.com/ustclug/podzol/pkg/docker"
@@ -24,6 +25,7 @@ func (e BadStatusCodeError) Error() string {
 type Client struct {
 	serverAddr string
 	httpClient *http.Client
+	verbose    bool
 }
 
 // NewClient creates a new client from config.
@@ -33,28 +35,42 @@ func NewClient(v *viper.Viper) *Client {
 		httpClient: &http.Client{
 			Timeout: v.GetDuration("timeout"),
 		},
+		verbose: v.GetBool("verbose"),
 	}
 }
 
 // MakeURL creates a URL from the given path.
-func (c *Client) MakeURL(path string) string {
+func (c *Client) makeURL(path string) string {
 	return "http://" + c.serverAddr + path
 }
 
 // MakeRequest constructs a *http.Request from the given arguments.
-func (c *Client) MakeRequest(method, path string, payload any) (*http.Request, error) {
+func (c *Client) makeRequest(method, path string, payload any) (*http.Request, error) {
+	url := c.makeURL(path)
 	body := new(bytes.Buffer)
 	if payload != nil {
 		if err := json.NewEncoder(body).Encode(payload); err != nil {
 			return nil, err
 		}
 	}
-	return http.NewRequest(method, c.MakeURL(path), body)
+	if c.verbose {
+		// Produce a copy of the request to stderr
+		fmt.Fprintf(os.Stderr, "%s %s\n", method, url)
+		if payload != nil {
+			e := json.NewEncoder(os.Stderr)
+			e.SetIndent("", "  ")
+			if err := e.Encode(payload); err != nil {
+				fmt.Fprintf(os.Stderr, "error encoding payload: %s\n", err)
+			}
+		}
+		fmt.Fprintln(os.Stderr)
+	}
+	return http.NewRequest(method, url, body)
 }
 
 // doRequest performs a request and decodes the response into output.
 func (c *Client) doRequest(method, path string, input, output any) error {
-	req, err := c.MakeRequest(method, path, input)
+	req, err := c.makeRequest(method, path, input)
 	if err != nil {
 		return err
 	}

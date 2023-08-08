@@ -30,4 +30,6 @@ func Execute() error {
 
 func init() {
 	rootCmd.PersistentFlags().StringVarP(&overrideConfigFile, "config", "c", "", "override config file")
+	rootCmd.PersistentFlags().BoolP("verbose", "v", false, "verbose output")
+	viper.BindPFlag("verbose", rootCmd.PersistentFlags().Lookup("verbose"))
 }
