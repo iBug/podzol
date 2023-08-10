@@ -4,8 +4,10 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"os"
+	"sync"
 
 	"github.com/spf13/viper"
 	"github.com/ustclug/podzol/pkg/docker"
@@ -55,7 +57,7 @@ func (c *Client) makeRequest(method, path string, payload any) (*http.Request, e
 	}
 	if c.verbose {
 		// Produce a copy of the request to stderr
-		fmt.Fprintf(os.Stderr, "%s %s\n", method, url)
+		fmt.Fprintf(os.Stderr, "> %s %s\n", method, url)
 		if payload != nil {
 			e := json.NewEncoder(os.Stderr)
 			e.SetIndent("", "  ")
@@ -100,7 +102,33 @@ func (c *Client) doRequest(method, path string, input, output any) error {
 		return fmt.Errorf("bad content type: %s", contentType)
 	}
 
-	return json.NewDecoder(resp.Body).Decode(output)
+	reader := io.Reader(resp.Body)
+	if c.verbose {
+		pipeR, pipeW := io.Pipe()
+		reader = io.TeeReader(resp.Body, pipeW)
+
+		wg := sync.WaitGroup{}
+		wg.Add(1)
+		defer wg.Wait()
+		defer pipeW.Close()
+		go func() {
+			defer wg.Done()
+			var buf any
+			if err := json.NewDecoder(pipeR).Decode(&buf); err != nil {
+				fmt.Fprintf(os.Stderr, "error decoding response: %v\n", err)
+				return
+			}
+			fmt.Fprintln(os.Stderr) // Separate response from request
+			fmt.Fprintf(os.Stderr, "< HTTP %s\n", resp.Status)
+			e := json.NewEncoder(os.Stderr)
+			e.SetIndent("", "  ")
+			if err := e.Encode(buf); err != nil {
+				fmt.Fprintf(os.Stderr, "error printing response: %v\n", err)
+			}
+		}()
+	}
+
+	return json.NewDecoder(reader).Decode(output)
 }
 
 func (c *Client) Create(opts docker.ContainerOptions) (data docker.ContainerInfo, err error) {

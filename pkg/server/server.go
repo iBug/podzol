@@ -161,5 +161,6 @@ func (s *Server) Run() error {
 	s.mux.HandleFunc("/create", s.HandleCreate)
 	s.mux.HandleFunc("/remove", s.HandleRemove)
 	s.mux.HandleFunc("/list", s.HandleList)
+	s.mux.HandleFunc("/purge", s.HandlePurge)
 	return http.ListenAndServe(s.listenAddr, s)
 }
