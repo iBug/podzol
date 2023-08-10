@@ -1,6 +1,9 @@
 package docker
 
 import (
+	"context"
+
+	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/client"
 	"github.com/spf13/viper"
 	"github.com/ustclug/podzol/pkg/portpool"
@@ -22,4 +25,8 @@ func NewClient(v *viper.Viper) (*Client, error) {
 		pool:   portpool.NewPool(v.GetUint16("port-min"), v.GetUint16("port-max")),
 		prefix: v.GetString("container-prefix"),
 	}, err
+}
+
+func (c *Client) Info(ctx context.Context) (types.Info, error) {
+	return c.c.Info(ctx)
 }

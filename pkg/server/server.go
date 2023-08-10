@@ -1,11 +1,13 @@
 package server
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
 
+	"github.com/docker/docker/api/types"
 	"github.com/spf13/viper"
 	"github.com/ustclug/podzol/pkg/docker"
 )
@@ -154,6 +156,15 @@ func (s *Server) HandlePurge(w http.ResponseWriter, r *http.Request) {
 func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	s.mux.ServeHTTP(w, r)
+}
+
+func (s *Server) DockerInfo(ctx context.Context) (types.Info, error) {
+	return s.docker.Info(ctx)
+}
+
+func (s *Server) DockerInit(ctx context.Context) error {
+	err := s.docker.ResetPorts(context.Background())
+	return err
 }
 
 func (s *Server) Run() error {

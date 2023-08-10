@@ -29,6 +29,11 @@ func serverRunE(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
+
+	err = s.DockerInit(cmd.Context())
+	if err != nil {
+		return err
+	}
 	return s.Run()
 }
 

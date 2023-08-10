@@ -56,9 +56,22 @@ func (p *Pool) Get() uint16 {
 	return 0
 }
 
+// Put returns a port number back to the pool.
 func (p *Pool) Put(port uint16) {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 
 	delete(p.used, port)
+}
+
+// Load loads a list of ports into the pool, replacing existing date.
+func (p *Pool) Load(ports []uint16) {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+
+	p.used = make(map[uint16]bool)
+	for _, port := range ports {
+		p.used[port] = true
+	}
+	p.last = ports[len(ports)-1]
 }
