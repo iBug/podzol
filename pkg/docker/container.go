@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -15,7 +16,6 @@ import (
 	"github.com/docker/docker/api/types/filters"
 	"github.com/docker/go-connections/nat"
 	"github.com/ustclug/podzol/pkg"
-	"golang.org/x/exp/slices"
 )
 
 // ContainerOptions is the options for Create, Remove and List.

@@ -2,11 +2,11 @@ package docker
 
 import (
 	"context"
+	"slices"
 
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/filters"
 	"github.com/ustclug/podzol/pkg"
-	"golang.org/x/exp/slices"
 )
 
 // Rebuild port pool from containers
