@@ -18,5 +18,4 @@ All client commands produce their request URL and body on standard error if `-v`
 
 ### Known Issues
 
-- The server process does not check for Docker access. If it's running without access to the Docker socket, it will constantly fail to operate.
-- Port allocation information is not persisted across server restarts. This should be fixed by inspecting all managed containers on startup and reconstructing the port allocation information from that.
+- None known.
