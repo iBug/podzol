@@ -6,15 +6,12 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"slices"
-	"strconv"
 	"strings"
 	"time"
 
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/filters"
-	"github.com/docker/go-connections/nat"
 	"github.com/ustclug/podzol/pkg"
 )
 
@@ -23,8 +20,8 @@ type ContainerOptions struct {
 	User     int           `json:"user"`
 	Token    string        `json:"token"`
 	AppName  string        `json:"app"`
+	Hostname string        `json:"hostname"`
 	Image    string        `json:"image"`
-	Port     uint16        `json:"port"`
 	Lifetime time.Duration `json:"lifetime"`
 }
 
@@ -100,7 +97,7 @@ func (c *ContainerLabel) UnmarshalJSON(b []byte) (err error) {
 type ContainerInfo struct {
 	Name     string    `json:"name"`
 	ID       string    `json:"id"`
-	Port     uint16    `json:"port"`
+	Hostname string    `json:"hostname"`
 	Deadline time.Time `json:"deadline"`
 }
 
@@ -154,27 +151,16 @@ func (c *Client) Create(ctx context.Context, opts ContainerOptions) (ContainerIn
 	}
 
 	containerName := c.ContainerName(opts)
-	portToMap := nat.Port(fmt.Sprintf("%d/tcp", opts.Port))
-	mappedPort := c.pool.Get()
 
 	containerConfig := &container.Config{
 		Hostname: containerName,
-		ExposedPorts: nat.PortSet{
-			portToMap: {},
-		},
-		Image:  opts.Image,
-		Labels: map[string]string{pkg.ID: label},
+		Image:    opts.Image,
+		Labels:   map[string]string{pkg.ID: label},
 	}
 
-	portBindings := nat.PortMap{portToMap: []nat.PortBinding{{
-		HostIP:   "0.0.0.0",
-		HostPort: strconv.Itoa(int(mappedPort)),
-	}}}
-
 	hostConfig := &container.HostConfig{
-		NetworkMode:  "bridge",
-		PortBindings: portBindings,
-		AutoRemove:   true,
+		NetworkMode: "bridge",
+		AutoRemove:  true,
 	}
 
 	createTime := time.Now().Truncate(time.Second)
@@ -191,17 +177,20 @@ func (c *Client) Create(ctx context.Context, opts ContainerOptions) (ContainerIn
 	return ContainerInfo{
 		Name:     containerName,
 		ID:       resp.ID,
-		Port:     mappedPort,
 		Deadline: createTime.Add(opts.Lifetime),
 	}, err
 }
 
-// Remove a container.
-func (c *Client) Remove(ctx context.Context, opts ContainerOptions) error {
-	return c.c.ContainerRemove(ctx, c.ContainerName(opts), types.ContainerRemoveOptions{
+func (c *Client) remove(ctx context.Context, name string) error {
+	return c.c.ContainerRemove(ctx, name, types.ContainerRemoveOptions{
 		RemoveVolumes: true,
 		Force:         true,
 	})
+}
+
+// Remove a container.
+func (c *Client) Remove(ctx context.Context, opts ContainerOptions) error {
+	return c.remove(ctx, c.ContainerName(opts))
 }
 
 // List containers.
@@ -233,15 +222,10 @@ func (c *Client) List(ctx context.Context, opts ContainerOptions) ([]ContainerIn
 		if opts.AppName != "" && label.App != opts.AppName {
 			continue
 		}
-		if opts.Port != 0 && !slices.ContainsFunc(container.Ports,
-			func(p types.Port) bool { return p.PublicPort == opts.Port }) {
-			continue
-		}
 
 		infos = append(infos, ContainerInfo{
 			Name:     strings.TrimPrefix(container.Names[0], "/"),
 			ID:       container.ID,
-			Port:     container.Ports[0].PublicPort,
 			Deadline: time.Unix(container.Created, 0).Add(label.Lifetime),
 		})
 	}
@@ -284,7 +268,6 @@ func (c *Client) Purge(ctx context.Context) ([]ContainerInfo, error) {
 		info := ContainerInfo{
 			Name:     strings.TrimPrefix(container.Names[0], "/"),
 			ID:       container.ID,
-			Port:     container.Ports[0].PublicPort,
 			Deadline: time.Unix(container.Created, 0).Add(label.Lifetime),
 		}
 		if time.Now().After(info.Deadline) {
@@ -294,10 +277,7 @@ func (c *Client) Purge(ctx context.Context) ([]ContainerInfo, error) {
 
 	errs := make([]error, 0)
 	for _, container := range infos {
-		err := c.c.ContainerRemove(ctx, container.Name, types.ContainerRemoveOptions{
-			RemoveVolumes: true,
-			Force:         true,
-		})
+		err := c.remove(ctx, container.Name)
 		if err != nil {
 			errs = append(errs, ContainerActionError{
 				Action:    "remove",

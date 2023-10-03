@@ -1,8 +1,6 @@
 package cmd
 
 import (
-	"fmt"
-	"strconv"
 	"time"
 
 	"github.com/spf13/cobra"
@@ -13,7 +11,7 @@ import (
 )
 
 var createCmd = &cobra.Command{
-	Use:   "create TOKEN APPLICATION IMAGE PORT [timeout]",
+	Use:   "create TOKEN APPLICATION IMAGE HOSTNAME [timeout]",
 	Short: "Create a new container",
 	Long:  `Create a new container with the given arguments. If timeout is not specified, it defaults to a minute.`,
 	RunE:  createRunE,
@@ -31,14 +29,7 @@ func createRunE(cmd *cobra.Command, args []string) error {
 	}
 	application := args[1]
 	image := args[2]
-	portnum, err := strconv.Atoi(args[3])
-	if err != nil {
-		return err
-	}
-	port := uint16(portnum)
-	if int(port) != portnum {
-		return fmt.Errorf("invalid port number: %d", portnum)
-	}
+	hostname := args[3]
 
 	timeout := time.Minute
 	if len(args) == 5 {
@@ -57,7 +48,7 @@ func createRunE(cmd *cobra.Command, args []string) error {
 		Token:    token,
 		AppName:  application,
 		Image:    image,
-		Port:     port,
+		Hostname: hostname,
 		Lifetime: timeout,
 	}
 	data, err := c.Create(opts)

@@ -163,8 +163,7 @@ func (s *Server) DockerInfo(ctx context.Context) (types.Info, error) {
 }
 
 func (s *Server) DockerInit(ctx context.Context) error {
-	err := s.docker.ResetPorts(context.Background())
-	return err
+	return nil
 }
 
 func (s *Server) Run() error {

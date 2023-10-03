@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"strconv"
 
 	"github.com/olekukonko/tablewriter"
 	"github.com/ustclug/podzol/pkg/docker"
@@ -30,7 +29,6 @@ func ShowContainer(w io.Writer, data docker.ContainerInfo) error {
 	table.AppendBulk([][]string{
 		{"Name:", data.Name},
 		{"ID:", data.ID},
-		{"Port:", strconv.Itoa(int(data.Port))},
 		{"Timeout:", data.Deadline.String()},
 	})
 	table.Render()
@@ -39,12 +37,11 @@ func ShowContainer(w io.Writer, data docker.ContainerInfo) error {
 
 func ListContainers(w io.Writer, data []docker.ContainerInfo) error {
 	table := makeTable(w)
-	table.SetHeader([]string{"Name", "ID", "Port", "Deadline"})
+	table.SetHeader([]string{"Name", "ID", "Deadline"})
 	for _, c := range data {
 		table.Append([]string{
 			c.Name,
 			c.ID[:12],
-			strconv.Itoa(int(c.Port)),
 			c.Deadline.String(),
 		})
 	}
