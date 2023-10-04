@@ -17,6 +17,7 @@ type Server struct {
 	mux    *http.ServeMux
 
 	listenAddr string
+	httpAddr   string
 }
 
 type ErrorResponse struct {
@@ -173,4 +174,8 @@ func (s *Server) Run() error {
 	s.mux.HandleFunc("/list", s.HandleList)
 	s.mux.HandleFunc("/purge", s.HandlePurge)
 	return http.ListenAndServe(s.listenAddr, s)
+}
+
+func (s *Server) RunHTTP() error {
+	return nil
 }

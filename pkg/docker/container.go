@@ -173,6 +173,7 @@ func (c *Client) Create(ctx context.Context, opts ContainerOptions) (ContainerIn
 		_ = c.Remove(ctx, opts)
 		return ContainerInfo{}, err
 	}
+	c.AddHostname(ctx, resp.ID)
 
 	return ContainerInfo{
 		Name:     containerName,
@@ -230,6 +231,15 @@ func (c *Client) List(ctx context.Context, opts ContainerOptions) ([]ContainerIn
 		})
 	}
 	return infos, nil
+}
+
+// Get container IP address.
+func (c *Client) GetIP(ctx context.Context, name string) (string, error) {
+	inspect, err := c.c.ContainerInspect(ctx, name)
+	if err != nil {
+		return "", err
+	}
+	return inspect.NetworkSettings.IPAddress, nil
 }
 
 type ContainerActionError struct {
