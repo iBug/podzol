@@ -61,7 +61,7 @@ func (s *HTTPServer) Handle(conn *net.TCPConn) {
 			return
 		}
 
-		if bytes.EqualFold(line[:5], []byte("Host:")) {
+		if len(line) > 5 && bytes.EqualFold(line[:5], []byte("Host:")) {
 			hostname := string(bytes.TrimSpace(line[5:]))
 			hostname = strings.SplitN(hostname, ".", 2)[0]
 			upstreamAddr, err = s.s.docker.GetIP(context.TODO(), hostname)
@@ -71,7 +71,7 @@ func (s *HTTPServer) Handle(conn *net.TCPConn) {
 			}
 			break
 		}
-		if bytes.Equal(line, []byte("\r\n")) {
+		if len(line) < 2 || bytes.Equal(line, []byte("\r\n")) {
 			// all headers read
 			break
 		}
