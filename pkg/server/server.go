@@ -177,5 +177,5 @@ func (s *Server) Run() error {
 }
 
 func (s *Server) RunHTTP() error {
-	return nil
+	return s.HTTPServer().ListenAndServe()
 }

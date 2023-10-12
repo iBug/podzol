@@ -34,7 +34,14 @@ func serverRunE(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
-	return s.Run()
+	errCh := make(chan error, 1)
+	go func() {
+		errCh <- s.Run()
+	}()
+	go func() {
+		errCh <- s.RunHTTP()
+	}()
+	return <-errCh
 }
 
 func init() {

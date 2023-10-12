@@ -122,11 +122,7 @@ func (s *HTTPServer) Handle(conn *net.TCPConn) {
 	_, _ = uploadBytes, downloadBytes
 }
 
-func (s *HTTPServer) Listen() error {
-	l, err := net.Listen("tcp", s.s.httpAddr)
-	if err != nil {
-		return err
-	}
+func (s *HTTPServer) Serve(l net.Listener) error {
 	for {
 		conn, err := l.Accept()
 		if err != nil {
@@ -134,4 +130,12 @@ func (s *HTTPServer) Listen() error {
 		}
 		go s.Handle(conn.(*net.TCPConn))
 	}
+}
+
+func (s *HTTPServer) ListenAndServe() error {
+	l, err := net.Listen("tcp", s.s.httpAddr)
+	if err != nil {
+		return err
+	}
+	return s.Serve(l)
 }
