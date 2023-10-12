@@ -27,22 +27,22 @@ Base request type:
 ```go
 type ContainerOptions struct {
     // User ID
-	User     int           `json:"user"`
+    User     int           `json:"user"`
 
     // Token to be supplied to the container
-	Token    string        `json:"token"`
+    Token    string        `json:"token"`
 
     // For identification purposes
-	AppName  string        `json:"app"`
+    AppName  string        `json:"app"`
 
     // First segment of the Host header, for reverse proxying
-	Hostname string        `json:"hostname"`
+    Hostname string        `json:"hostname"`
 
     // Docker image to be used
-	Image    string        `json:"image"`
+    Image    string        `json:"image"`
 
     // How long should podzol auto-destroy the container, in seconds
-	Lifetime time.Duration `json:"lifetime"`
+    Lifetime time.Duration `json:"lifetime"`
 }
 ```
 
@@ -51,12 +51,12 @@ Base response type:
 ```go
 type ContainerInfo struct {
     // Container name, ID, reverse proxy hostname
-	Name     string    `json:"name"`
-	ID       string    `json:"id"`
-	Hostname string    `json:"hostname"`
+    Name     string    `json:"name"`
+    ID       string    `json:"id"`
+    Hostname string    `json:"hostname"`
 
     // When the container will expire, in Unix timestamp
-	Deadline time.Time `json:"deadline"`
+    Deadline time.Time `json:"deadline"`
 }
 ```
 
