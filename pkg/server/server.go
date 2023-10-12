@@ -35,6 +35,7 @@ func NewServer(v *viper.Viper) (*Server, error) {
 		mux:    http.NewServeMux(),
 
 		listenAddr: v.GetString("listen-addr"),
+		httpAddr:   v.GetString("http-addr"),
 	}, nil
 }
 

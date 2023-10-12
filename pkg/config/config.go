@@ -30,6 +30,7 @@ func init() {
 	viper.SetEnvPrefix(strings.ToUpper(pkg.Name))
 
 	viper.SetDefault("listen-addr", "127.0.0.1:9998")
+	viper.SetDefault("http-addr", "127.0.0.1:9999")
 	viper.SetDefault("container-prefix", strings.ToLower(pkg.Name))
 	viper.SetDefault("port-min", 10000)
 	viper.SetDefault("port-max", 19999)
