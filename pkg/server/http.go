@@ -85,7 +85,7 @@ func (s *HTTPServer) Handle(conn *net.TCPConn) {
 	}
 
 	// Connect to upstream
-	upstreamConnTemp, err := net.Dial("tcp", upstreamAddr)
+	upstreamConnTemp, err := net.Dial("tcp", upstreamAddr+":8080")
 	if err != nil {
 		closeConn(conn)
 		return
