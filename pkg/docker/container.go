@@ -178,6 +178,7 @@ func (c *Client) Create(ctx context.Context, opts ContainerOptions) (ContainerIn
 	return ContainerInfo{
 		Name:     containerName,
 		ID:       resp.ID,
+		Hostname: opts.Hostname,
 		Deadline: createTime.Add(opts.Lifetime),
 	}, err
 }
